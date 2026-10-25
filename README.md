@@ -17,7 +17,7 @@ The dot color follows whichever limit is highest:
 | 66–79% | orange |
 | 80%+ | red |
 
-It refreshes on launch, every 5 minutes, and whenever you open it.
+It refreshes on launch, every 5 minutes, and whenever you open it, but never more than once a minute (see [Rate limits](#rate-limits)).
 
 ## Requirements
 
@@ -64,3 +64,15 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.gil.claude-usage-bar
 It reads the OAuth token Claude Code stores in your login keychain (`Claude Code-credentials`, via `/usr/bin/security`, so there's no keychain prompt) and calls the same usage endpoint `/usage` uses. It never refreshes or writes the token — if it has expired, run any `claude` command and it'll pick up the new one.
 
 This endpoint isn't a documented public API, so a Claude Code update could change it and break the app.
+
+### Rate limits
+
+The usage endpoint is rate limited, and that limit is shared with Claude Code itself (`/usage` and anything else it checks with your login). Opening the popover over and over, or relaunching the app many times in a row, can get you an HTTP 429.
+
+To stay under it, the app:
+
+- fetches at most once every 60 seconds, so opening the popover again within a minute just shows the last result
+- honors the server's `Retry-After` header when it gets a 429
+- keeps showing the last good numbers, with a gray "Rate limited, showing data from …" note, instead of an error
+
+The refresh button is disabled until the next fetch is allowed; hover it to see when.

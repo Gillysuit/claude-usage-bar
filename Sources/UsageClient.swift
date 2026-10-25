@@ -80,12 +80,14 @@ struct Credentials {
 enum UsageError: LocalizedError {
     case noCredentials
     case expired
+    case rateLimited(retryAfter: TimeInterval?)
     case http(Int)
 
     var errorDescription: String? {
         switch self {
         case .noCredentials: return "No Claude Code login found in the keychain. Run `claude` and log in."
         case .expired: return "Token expired. Run any `claude` command to refresh it."
+        case .rateLimited: return "Rate limited by the usage endpoint."
         case .http(let code): return "Usage request failed (HTTP \(code))."
         }
     }
@@ -123,8 +125,14 @@ enum UsageClient {
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
         request.timeoutInterval = 15
         let (data, response) = try await URLSession.shared.data(for: request)
-        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        let http = response as? HTTPURLResponse
+        let status = http?.statusCode ?? 0
         if status == 401 { throw UsageError.expired }
+        if status == 429 {
+            // Retry-After can also be an HTTP date; only the seconds form is handled, else the caller's default applies.
+            let retryAfter = http?.value(forHTTPHeaderField: "Retry-After").flatMap(TimeInterval.init)
+            throw UsageError.rateLimited(retryAfter: retryAfter)
+        }
         guard status == 200 else { throw UsageError.http(status) }
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase

@@ -20,6 +20,10 @@ struct UsageView: View {
                 Text(error).font(.caption).foregroundStyle(.red)
             }
 
+            if let notice = store.notice {
+                Label(notice, systemImage: "clock").font(.caption).foregroundStyle(.secondary)
+            }
+
             if let usage = store.usage {
                 ForEach(usage.allLimits) { LimitRow(limit: $0) }
 
@@ -37,7 +41,7 @@ struct UsageView: View {
                 }
 
                 if let spend = usage.spend { SpendRow(spend: spend) }
-            } else if store.error == nil {
+            } else if store.error == nil && store.notice == nil {
                 ProgressView().controlSize(.small).frame(maxWidth: .infinity)
             }
 
@@ -48,13 +52,18 @@ struct UsageView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button {
-                    Task { await store.refresh() }
-                } label: {
-                    if store.isLoading { ProgressView().controlSize(.mini) } else { Image(systemName: "arrow.clockwise") }
+                // Re-evaluated every few seconds so the button re-enables when the cooldown ends.
+                TimelineView(.periodic(from: .now, by: 5)) { context in
+                    let next = store.nextAllowedFetch.flatMap { $0 > context.date ? $0 : nil }
+                    Button {
+                        Task { await store.refresh() }
+                    } label: {
+                        if store.isLoading { ProgressView().controlSize(.mini) } else { Image(systemName: "arrow.clockwise") }
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(next != nil)
+                    .help(next.map { "Can refresh again after \(shortTime($0))" } ?? "Refresh")
                 }
-                .buttonStyle(.borderless)
-                .help("Refresh")
                 Button("Quit") { NSApp.terminate(nil) }
                     .buttonStyle(.borderless)
                     .padding(.leading, 8)

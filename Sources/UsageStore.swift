@@ -7,6 +7,13 @@ final class UsageStore: ObservableObject {
     @Published private(set) var error: String?
     @Published private(set) var updatedAt: Date?
     @Published private(set) var isLoading = false
+    /// Non-error status shown in gray, e.g. when rate limited but older data is still on screen.
+    @Published private(set) var notice: String?
+    /// Fetches before this are skipped: 60s after a success, or the server's Retry-After after a 429.
+    @Published private(set) var nextAllowedFetch: Date?
+
+    /// The endpoint's rate limit is shared with Claude Code itself, so never ask more than once a minute.
+    static let minInterval: TimeInterval = 60
 
     var onUpdate: (() -> Void)?
 
@@ -15,6 +22,7 @@ final class UsageStore: ObservableObject {
 
     func refresh() async {
         guard !isLoading else { return }
+        if let next = nextAllowedFetch, next > Date() { return }
         isLoading = true
         defer {
             isLoading = false
@@ -26,10 +34,22 @@ final class UsageStore: ObservableObject {
             usage = try await UsageClient.fetch(token: creds.token)
             updatedAt = Date()
             error = nil
+            notice = nil
+            nextAllowedFetch = Date().addingTimeInterval(Self.minInterval)
+        } catch UsageError.rateLimited(let retryAfter) {
+            let next = Date().addingTimeInterval(max(retryAfter ?? 0, Self.minInterval))
+            nextAllowedFetch = next
+            error = nil
+            notice = updatedAt.map { "Rate limited, showing data from \(shortTime($0))" }
+                ?? "Rate limited, retrying after \(shortTime(next))"
         } catch {
             self.error = error.localizedDescription
         }
     }
+}
+
+func shortTime(_ date: Date) -> String {
+    date.formatted(date: .omitted, time: .shortened)
 }
 
 /// green < 33, yellow < 66, orange 66–79, red 80+.
