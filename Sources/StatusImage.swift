@@ -6,8 +6,13 @@ enum StatusImage {
     /// Leading space left empty for the animated dot.
     static let dotSpace = GlowDotView.size
     private static let height: CGFloat = 22
-    private static let labelFont = NSFont.systemFont(ofSize: 9.5, weight: .medium)
-    private static let valueFont = NSFont.monospacedDigitSystemFont(ofSize: 9.5, weight: .semibold)
+    private static let labelFont = NSFont.systemFont(ofSize: 10, weight: .medium)
+    private static let valueFont = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .bold)
+    // Brighter than secondaryLabelColor, which washes out over busy wallpapers. Resolved per appearance at draw time.
+    private static let labelColor = NSColor(name: nil) { appearance in
+        let dark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        return NSColor(white: dark ? 1 : 0, alpha: 0.75)
+    }
 
     static func make(session: Double?, weekly: Double?) -> NSImage {
         let rows = [("Session", session), ("Weekly", weekly)].compactMap { label, value in
@@ -23,8 +28,8 @@ enum StatusImage {
             let lineHeight = height / 2
             for (i, row) in rows.enumerated() {
                 // Top row sits in the upper half; a lone row is centered.
-                let y = rows.count == 1 ? lineHeight / 2 - 0.5 : (i == 0 ? lineHeight - 0.5 : -0.5)
-                draw(row.0, labelFont, .secondaryLabelColor, x: textX, y: y)
+                let y = rows.count == 1 ? lineHeight / 2 - 1 : (i == 0 ? lineHeight - 1 : -1)
+                draw(row.0, labelFont, labelColor, x: textX, y: y)
                 draw(row.1, valueFont, .labelColor, x: valueRight - width(row.1, valueFont), y: y)
             }
             return true
