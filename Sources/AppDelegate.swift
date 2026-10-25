@@ -7,12 +7,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let popover = NSPopover()
     private var statusItem: NSStatusItem!
     private var timer: Timer?
+    private let dot = GlowDotView(frame: NSRect(x: 0, y: 0, width: GlowDotView.size, height: GlowDotView.size))
+    /// Horizontal offset of the dot from the button's center; follows the label image's width.
+    private var dotOffset: NSLayoutConstraint!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.action = #selector(togglePopover)
         statusItem.button?.target = self
         statusItem.button?.imagePosition = .imageOnly
+        if let button = statusItem.button {
+            // The label image leaves its leading space empty; the animated dot sits over it.
+            button.addSubview(dot)
+            dot.translatesAutoresizingMaskIntoConstraints = false
+            dotOffset = dot.centerXAnchor.constraint(equalTo: button.centerXAnchor)
+            NSLayoutConstraint.activate([
+                dotOffset,
+                dot.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+                dot.widthAnchor.constraint(equalToConstant: GlowDotView.size),
+                dot.heightAnchor.constraint(equalToConstant: GlowDotView.size),
+            ])
+        }
 
         popover.behavior = .transient
         let hosting = NSHostingController(rootView: UsageView(store: store))
@@ -49,8 +64,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let limits = store.usage?.allLimits ?? []
         let session = limits.first { $0.kind == "session" }?.percent
         let weekly = limits.first { $0.kind == "weekly_all" }?.percent
+        let image = StatusImage.make(session: session, weekly: weekly)
+        button.image = image
+        // The image is centered in the button, so its leading dot space starts half its width left of center.
+        dotOffset.constant = StatusImage.dotSpace / 2 - image.size.width / 2
         // Dot color follows the highest limit, including per-model weekly ones not shown in the bar.
-        button.image = StatusImage.make(color: usageColor(store.peak), session: session, weekly: weekly)
+        dot.setLevel(UsageLevel(store.peak))
         button.setAccessibilityLabel(session.map { s in
             "Claude usage: session \(Int(s.rounded()))%" + (weekly.map { ", weekly \(Int($0.rounded()))%" } ?? "")
         } ?? "Claude usage")

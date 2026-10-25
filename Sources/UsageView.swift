@@ -76,6 +76,7 @@ struct UsageView: View {
 
 private struct LimitRow: View {
     let limit: UsageLimit
+    private var level: UsageLevel { UsageLevel(limit.percent) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -88,7 +89,10 @@ private struct LimitRow: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(.quaternary)
                     Capsule()
-                        .fill(Color(nsColor: usageColor(limit.percent)))
+                        .fill(LinearGradient(
+                            colors: [Color(nsColor: level.colors.0), Color(nsColor: level.colors.1)],
+                            startPoint: .leading, endPoint: .trailing
+                        ))
                         .frame(width: geo.size.width * min(max(limit.percent, 0), 100) / 100)
                 }
             }

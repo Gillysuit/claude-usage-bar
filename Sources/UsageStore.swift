@@ -52,14 +52,27 @@ func shortTime(_ date: Date) -> String {
     date.formatted(date: .omitted, time: .shortened)
 }
 
-/// green < 33, yellow < 66, orange 66–79, red 80+.
-func usageColor(_ percent: Double?) -> NSColor {
-    guard let percent else { return .systemGray }
-    switch percent {
-    case ..<33: return .systemGreen
-    case ..<66: return .systemYellow
-    case ..<80: return .systemOrange
-    default: return .systemRed
+/// green↔teal under 33%, yellow↔orange under 80%, red↔purple at 80%+.
+enum UsageLevel {
+    case unknown, low, mid, high
+
+    init(_ percent: Double?) {
+        guard let percent else { self = .unknown; return }
+        switch percent {
+        case ..<33: self = .low
+        case ..<80: self = .mid
+        default: self = .high
+        }
+    }
+
+    /// The two colors the lava-lamp dot drifts between; bars use them as a gradient.
+    var colors: (NSColor, NSColor) {
+        switch self {
+        case .unknown: return (.systemGray, .systemGray)
+        case .low: return (.systemGreen, .systemTeal)
+        case .mid: return (.systemYellow, .systemOrange)
+        case .high: return (.systemRed, .systemPurple)
+        }
     }
 }
 

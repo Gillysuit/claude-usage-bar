@@ -8,14 +8,15 @@ The menu bar shows a glowing dot with your current **Session** and **Weekly** pe
 - This week's usage split by surface (Claude Code, Chats, Cowork, …)
 - Extra usage spend and whether it's on
 
-The dot color follows whichever limit is highest:
+The dot is a little lava lamp: two colors slowly swirl inside it while its glow drifts between them. The colors follow whichever limit is highest:
 
-| Usage | Color |
+| Usage | Colors |
 |---|---|
-| under 33% | green |
-| 33–65% | yellow |
-| 66–79% | orange |
-| 80%+ | red |
+| under 33% | green ↔ teal |
+| 33–79% | yellow ↔ orange |
+| 80%+ | red ↔ purple, and a bit faster |
+
+The animation runs in Core Animation at about 12 fps, so the app itself uses no CPU for it. With **Reduce Motion** turned on in Accessibility settings, the dot stays still.
 
 It refreshes on launch, every 5 minutes, and whenever you open it, but never more than once a minute (see [Rate limits](#rate-limits)).
 
