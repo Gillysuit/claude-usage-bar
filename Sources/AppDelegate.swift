@@ -35,6 +35,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hosting.sizingOptions = .preferredContentSize
         popover.contentViewController = hosting
 
+        // Pause the dot's animation on battery or with Reduce Motion, and resume when that changes.
+        PowerSource.startObserving()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(animationConditionsChanged), name: PowerSource.didChange, object: nil)
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self, selector: #selector(animationConditionsChanged),
+            name: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil)
+
         store.onUpdate = { [weak self] in self?.updateButton() }
         updateButton()
         refresh()
@@ -42,6 +50,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
+    }
+
+    @objc private func animationConditionsChanged() {
+        dot.refreshAnimation()
     }
 
     private func refresh() {

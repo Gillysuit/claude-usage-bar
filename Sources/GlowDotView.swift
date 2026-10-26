@@ -3,7 +3,7 @@ import QuartzCore
 
 /// Lava-lamp dot for the status item: two colors swirl inside the dot while its glow breathes between them.
 /// Kept cheap for the window server: glows are blurred once into images and only faded,
-/// and animations are capped at a low frame rate. Static when Reduce Motion is on.
+/// and animations are capped at a low frame rate. Static on battery power or with Reduce Motion on.
 final class GlowDotView: NSView {
     static let size: CGFloat = 16
     private static let dotSize: CGFloat = 8
@@ -15,6 +15,7 @@ final class GlowDotView: NSView {
     private let core = CALayer()
     private let swirl = CAGradientLayer()
     private var level: UsageLevel?
+    private var animating = false
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -52,7 +53,7 @@ final class GlowDotView: NSView {
         guard newLevel != level else { return }
         level = newLevel
         let (a, b) = newLevel.colors
-        [glowGroup, glowB, swirl].forEach { $0.removeAllAnimations() }
+        stopAnimating()
         let scale = window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2
         for (glow, color) in [(glowA, a), (glowB, b)] {
             glow.contentsScale = scale
@@ -60,10 +61,22 @@ final class GlowDotView: NSView {
         }
         glowB.opacity = 0
         swirl.colors = [a.cgColor, b.cgColor]
+        refreshAnimation()
+    }
 
-        guard newLevel != .unknown, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
+    /// Starts or stops the animation to match the level, Reduce Motion, and whether the Mac is plugged in.
+    /// Cheap to call often: it does nothing unless that answer changed.
+    func refreshAnimation() {
+        guard let level else { return }
+        let shouldAnimate = level != .unknown
+            && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            && PowerSource.isOnAC
+        guard shouldAnimate != animating else { return }
+        stopAnimating()
+        guard shouldAnimate else { return }
+        animating = true
         // Slow and calm normally; quicker near the limit.
-        let period: CFTimeInterval = newLevel == .high ? 2.5 : 5
+        let period: CFTimeInterval = level == .high ? 2.5 : 5
 
         // Glow color drifts a→b while its brightness breathes on a slightly offset beat.
         glowB.add(breathing("opacity", from: 0, to: 1, period: period), forKey: "fade")
@@ -76,6 +89,11 @@ final class GlowDotView: NSView {
         spin.repeatCount = .infinity
         spin.preferredFrameRateRange = Self.frameRate
         swirl.add(spin, forKey: "spin")
+    }
+
+    private func stopAnimating() {
+        [glowGroup, glowB, swirl].forEach { $0.removeAllAnimations() }
+        animating = false
     }
 
     private func breathing(_ keyPath: String, from: Double, to: Double, period: CFTimeInterval) -> CABasicAnimation {
