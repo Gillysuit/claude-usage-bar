@@ -7,7 +7,7 @@ import QuartzCore
 final class GlowDotView: NSView {
     static let size: CGFloat = 16
     private static let dotSize: CGFloat = 8
-    private static let frameRate = CAFrameRateRange(minimum: 8, maximum: 15, preferred: 12)
+    private static let frameRate = CAFrameRateRange(minimum: 6, maximum: 10, preferred: 8)
 
     private let glowGroup = CALayer()
     private let glowA = CALayer()
