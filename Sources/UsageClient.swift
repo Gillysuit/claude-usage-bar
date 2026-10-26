@@ -72,6 +72,34 @@ struct UsageLimit: Decodable, Identifiable {
     var resetDate: Date? { resetsAt.flatMap(parseISODate) }
 }
 
+struct Profile: Decodable {
+    let organization: Organization?
+
+    struct Organization: Decodable {
+        let billingType: String?
+        let subscriptionStatus: String?
+        let subscriptionCreatedAt: String?
+    }
+
+    /// The API has no renewal date, so this is the next monthly anniversary of the subscription's start.
+    /// It's wrong for annual billing, or if the billing day moved after the subscription started.
+    var nextRenewal: Date? {
+        guard let org = organization,
+              org.billingType == "stripe_subscription", org.subscriptionStatus == "active",
+              let start = org.subscriptionCreatedAt.flatMap(parseISODate)
+        else { return nil }
+        // Months are added to the start date each time so a 31st start comes back to the 31st after February.
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        var months = 1
+        while let date = calendar.date(byAdding: .month, value: months, to: start) {
+            if date > Date() { return date }
+            months += 1
+        }
+        return nil
+    }
+}
+
 struct Credentials {
     let token: String
     let plan: String?
@@ -120,7 +148,15 @@ enum UsageClient {
     }
 
     static func fetch(token: String) async throws -> UsageResponse {
-        var request = URLRequest(url: URL(string: "https://api.anthropic.com/api/oauth/usage")!)
+        try await get("usage", token: token)
+    }
+
+    static func fetchProfile(token: String) async throws -> Profile {
+        try await get("profile", token: token)
+    }
+
+    private static func get<T: Decodable>(_ path: String, token: String) async throws -> T {
+        var request = URLRequest(url: URL(string: "https://api.anthropic.com/api/oauth/\(path)")!)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
         request.timeoutInterval = 15
@@ -136,7 +172,7 @@ enum UsageClient {
         guard status == 200 else { throw UsageError.http(status) }
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode(UsageResponse.self, from: data)
+        return try decoder.decode(T.self, from: data)
     }
 }
 

@@ -4,6 +4,8 @@ import AppKit
 final class UsageStore: ObservableObject {
     @Published private(set) var usage: UsageResponse?
     @Published private(set) var plan: String?
+    /// Fetched once; the subscription start it carries doesn't change.
+    @Published private(set) var profile: Profile?
     @Published private(set) var error: String?
     @Published private(set) var updatedAt: Date?
     @Published private(set) var isLoading = false
@@ -32,6 +34,9 @@ final class UsageStore: ObservableObject {
             let creds = try UsageClient.readCredentials()
             plan = creds.plan
             usage = try await UsageClient.fetch(token: creds.token)
+            if profile == nil {
+                profile = try? await UsageClient.fetchProfile(token: creds.token)
+            }
             updatedAt = Date()
             error = nil
             notice = nil
@@ -74,6 +79,14 @@ enum UsageLevel {
         case .high: return (.systemRed, .systemPurple)
         }
     }
+}
+
+/// Day only, in UTC like the billing anniversary it's counted from, so it doesn't slip to the day before in US time zones.
+func renewalText(_ date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "EEE MMM d"
+    formatter.timeZone = TimeZone(identifier: "UTC")
+    return "Renews \(formatter.string(from: date))"
 }
 
 func resetText(_ date: Date?) -> String? {

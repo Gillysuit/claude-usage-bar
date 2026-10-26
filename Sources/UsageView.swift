@@ -6,7 +6,14 @@ struct UsageView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Claude usage").font(.headline)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Claude usage").font(.headline)
+                    if let renewal = store.profile?.nextRenewal {
+                        Text(renewalText(renewal))
+                            .font(.caption).foregroundStyle(.secondary)
+                            .help("Estimated from when your subscription started, assuming monthly billing")
+                    }
+                }
                 Spacer()
                 if let plan = store.plan {
                     Text(plan.capitalized)
