@@ -2,6 +2,10 @@
 
 A tiny macOS menu bar app that shows your Claude plan usage — the same numbers as `/usage` in Claude Code.
 
+<img src="docs/menu-bar.jpg" width="123" alt="Menu bar item: a glowing yellow dot next to Session 35% and Weekly 8%">
+
+<img src="docs/panel.png" width="280" alt="Open panel: session, weekly and per-model limits with reset times, this week's usage by surface, and extra usage">
+
 The menu bar shows a glowing dot with your current **Session** and **Weekly** percentages stacked beside it. Click it for the full breakdown:
 
 - Current session, weekly (all models) and any per-model weekly limits, each with a bar and reset time
