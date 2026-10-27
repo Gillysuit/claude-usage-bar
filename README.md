@@ -81,3 +81,21 @@ To stay under it, the app:
 - keeps showing the last good numbers, with a gray "Rate limited, showing data from …" note, instead of an error
 
 The refresh button is disabled until the next fetch is allowed; hover it to see when.
+
+## Troubleshooting
+
+The app writes a small log to macOS's built-in system log. It stays on your Mac and never includes your token or usage numbers. It records rate limits (including the server's raw `Retry-After` and how long the app actually waits), failed requests, fetches skipped during a cooldown, and waking from sleep.
+
+See the last day of it:
+
+```bash
+/usr/bin/log show --predicate 'process == "ClaudeUsage" AND category == "usage"' --last 1d --style compact
+```
+
+Or watch it live, including each successful fetch:
+
+```bash
+/usr/bin/log stream --predicate 'process == "ClaudeUsage" AND category == "usage"' --level debug --style compact
+```
+
+Use the full `/usr/bin/log` path: zsh, the default macOS shell, has its own `log` command. You can also open the Console app and search for `ClaudeUsage`. macOS keeps these entries for a few days, then deletes them.

@@ -163,13 +163,21 @@ enum UsageClient {
         let (data, response) = try await URLSession.shared.data(for: request)
         let http = response as? HTTPURLResponse
         let status = http?.statusCode ?? 0
-        if status == 401 { throw UsageError.expired }
+        if status == 401 {
+            usageLog.error("\(path, privacy: .public): HTTP 401, token expired")
+            throw UsageError.expired
+        }
         if status == 429 {
             // Retry-After can also be an HTTP date; only the seconds form is handled, else the caller's default applies.
-            let retryAfter = http?.value(forHTTPHeaderField: "Retry-After").flatMap(TimeInterval.init)
+            let header = http?.value(forHTTPHeaderField: "Retry-After")
+            usageLog.notice("\(path, privacy: .public): HTTP 429, Retry-After: \(header ?? "none", privacy: .public)")
+            let retryAfter = header.flatMap(TimeInterval.init)
             throw UsageError.rateLimited(retryAfter: retryAfter)
         }
-        guard status == 200 else { throw UsageError.http(status) }
+        guard status == 200 else {
+            usageLog.error("\(path, privacy: .public): HTTP \(status)")
+            throw UsageError.http(status)
+        }
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(T.self, from: data)

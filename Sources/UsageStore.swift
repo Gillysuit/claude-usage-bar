@@ -26,7 +26,10 @@ final class UsageStore: ObservableObject {
 
     func refresh() async {
         guard !isLoading else { return }
-        if let next = nextAllowedFetch, next > Date() { return }
+        if let next = nextAllowedFetch, next > Date() {
+            usageLog.notice("Skipped fetch, next allowed at \(next, privacy: .public)")
+            return
+        }
         isLoading = true
         defer {
             isLoading = false
@@ -43,14 +46,17 @@ final class UsageStore: ObservableObject {
             error = nil
             notice = nil
             nextAllowedFetch = Date().addingTimeInterval(Self.minInterval)
+            usageLog.debug("Fetched usage")
         } catch UsageError.rateLimited(let retryAfter) {
             let wait = min(max(retryAfter ?? 0, Self.minInterval), Self.maxBackoff)
             let next = Date().addingTimeInterval(wait)
             nextAllowedFetch = next
+            usageLog.notice("Rate limited, waiting \(Int(wait))s until \(next, privacy: .public)")
             error = nil
             notice = updatedAt.map { "Rate limited, showing data from \(shortTime($0))" }
                 ?? "Rate limited, retrying after \(shortTime(next))"
         } catch {
+            usageLog.error("Fetch failed: \(error.localizedDescription, privacy: .public)")
             self.error = error.localizedDescription
         }
     }

@@ -60,6 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func didWake() {
+        usageLog.notice("Woke from sleep, refreshing")
         refresh()
     }
 
