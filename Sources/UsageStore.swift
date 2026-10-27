@@ -16,6 +16,8 @@ final class UsageStore: ObservableObject {
 
     /// The endpoint's rate limit is shared with Claude Code itself, so never ask more than once a minute.
     static let minInterval: TimeInterval = 60
+    /// A 429's Retry-After is honored only up to this; an hours-long one would otherwise freeze the numbers until then.
+    static let maxBackoff: TimeInterval = 15 * 60
 
     var onUpdate: (() -> Void)?
 
@@ -42,7 +44,8 @@ final class UsageStore: ObservableObject {
             notice = nil
             nextAllowedFetch = Date().addingTimeInterval(Self.minInterval)
         } catch UsageError.rateLimited(let retryAfter) {
-            let next = Date().addingTimeInterval(max(retryAfter ?? 0, Self.minInterval))
+            let wait = min(max(retryAfter ?? 0, Self.minInterval), Self.maxBackoff)
+            let next = Date().addingTimeInterval(wait)
             nextAllowedFetch = next
             error = nil
             notice = updatedAt.map { "Rate limited, showing data from \(shortTime($0))" }
@@ -53,8 +56,14 @@ final class UsageStore: ObservableObject {
     }
 }
 
+/// Time only for today; otherwise prefixed with the day, so data from yesterday doesn't read as fresh.
 func shortTime(_ date: Date) -> String {
-    date.formatted(date: .omitted, time: .shortened)
+    let time = date.formatted(date: .omitted, time: .shortened)
+    let calendar = Calendar.current
+    if calendar.isDateInToday(date) { return time }
+    if calendar.isDateInYesterday(date) { return "yesterday \(time)" }
+    if calendar.isDateInTomorrow(date) { return "tomorrow \(time)" }
+    return "\(date.formatted(.dateTime.month(.abbreviated).day())), \(time)"
 }
 
 /// green↔teal under 33%, yellow↔orange under 80%, red↔purple at 80%+.

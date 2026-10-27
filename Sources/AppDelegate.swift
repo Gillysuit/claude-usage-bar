@@ -50,10 +50,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
+        // The timer doesn't fire while asleep, so catch up right away on wake.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self, selector: #selector(didWake), name: NSWorkspace.didWakeNotification, object: nil)
     }
 
     @objc private func animationConditionsChanged() {
         dot.refreshAnimation()
+    }
+
+    @objc private func didWake() {
+        refresh()
     }
 
     private func refresh() {

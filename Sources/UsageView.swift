@@ -55,7 +55,7 @@ struct UsageView: View {
             Divider()
             HStack {
                 if let updated = store.updatedAt {
-                    Text("Updated \(updated.formatted(date: .omitted, time: .shortened))")
+                    Text("Updated \(shortTime(updated))")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()

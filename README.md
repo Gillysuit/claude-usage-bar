@@ -77,7 +77,7 @@ The usage endpoint is rate limited, and that limit is shared with Claude Code it
 To stay under it, the app:
 
 - fetches at most once every 60 seconds, so opening the popover again within a minute just shows the last result
-- honors the server's `Retry-After` header when it gets a 429
+- honors the server's `Retry-After` header when it gets a 429, up to 15 minutes, so a long one can't freeze the numbers for hours
 - keeps showing the last good numbers, with a gray "Rate limited, showing data from …" note, instead of an error
 
 The refresh button is disabled until the next fetch is allowed; hover it to see when.
