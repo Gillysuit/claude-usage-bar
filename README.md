@@ -22,7 +22,7 @@ The dot is a little lava lamp: two colors slowly swirl inside it while its glow 
 
 The animation runs in Core Animation at about 8 fps, so the app itself uses no CPU for it; drawing it cost macOS roughly 2% of one core when measured at 12 fps, and the lower cap only reduces that. To save battery, the dot only animates while your Mac is plugged in. On battery, or with **Reduce Motion** turned on in Accessibility settings, it stays still (still colored), and it picks back up as soon as that changes.
 
-It refreshes on launch, every 5 minutes, and whenever you open it, but never more than once a minute (see [Rate limits](#rate-limits)).
+It refreshes on launch, every 15 minutes, on wake, and whenever you open it, but never more than once a minute (see [Rate limits](#rate-limits)).
 
 ## Requirements
 

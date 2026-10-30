@@ -47,7 +47,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateButton()
         refresh()
         // Keep the glow current between clicks.
-        timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 900, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
         // The timer doesn't fire while asleep, so catch up right away on wake.
